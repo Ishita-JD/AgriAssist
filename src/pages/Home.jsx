@@ -14,15 +14,15 @@ const Home = () => {
     }, []);
 
     const parallaxStyle = {
-        backgroundPositionY: scrollY * 0.4 + 'px'
+        backgroundPositionY: scrollY * 0.65 + 'px'
     };
 
     const textParallaxStyle = {
-        transform: `translateY(${scrollY * -0.2}px)`
+        transform: `translateY(${scrollY * -0.35}px)`
     };
 
     const farmerParallaxStyle = {
-        transform: `translateY(${scrollY * 0.15}px)`
+        transform: `translateY(${scrollY * 0.6}px)`
     };
 
     return (
@@ -51,7 +51,9 @@ const Home = () => {
                         </div>
                     </div>
 
-                    <div className="hero-image-overlay" style={farmerParallaxStyle}></div>
+                    <div className="hero-image-wrapper" style={farmerParallaxStyle}>
+                        <div className="hero-image-overlay"></div>
+                    </div>
 
                     <div className="social-nav">
                         <Facebook size={20} className="social-icon" />
