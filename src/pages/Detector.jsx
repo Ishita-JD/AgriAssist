@@ -1,5 +1,23 @@
 import React, { useState, useRef } from 'react';
-import { Search, Upload, Leaf, AlertTriangle, CheckCircle, Camera, Loader } from 'lucide-react';
+import { Search, Upload, Leaf, AlertTriangle, CheckCircle, Camera, Loader, ShieldCheck, Bug, Droplets } from 'lucide-react';
+
+const getTreatmentIcon = (type) => {
+    switch (type.toLowerCase()) {
+        case 'chemical': return <Droplets size={20} style={{ color: '#60a5fa' }} />;
+        case 'biological': return <Bug size={20} style={{ color: '#34d399' }} />;
+        case 'prevention': return <ShieldCheck size={20} style={{ color: '#a78bfa' }} />;
+        default: return <Leaf size={20} style={{ color: 'var(--accent-green)' }} />;
+    }
+};
+
+const getTreatmentColor = (type) => {
+    switch (type.toLowerCase()) {
+        case 'chemical': return '#60a5fa';
+        case 'biological': return '#34d399';
+        case 'prevention': return '#a78bfa';
+        default: return 'var(--accent-green)';
+    }
+};
 
 const Detector = () => {
     const [dragOver, setDragOver] = useState(false);
@@ -180,38 +198,57 @@ const Detector = () => {
                             </div>
                         ) : (
                             <div>
-                                <div style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>
-                                    <AlertTriangle size={28} />
-                                    <span style={{ fontSize: '1.2rem', fontWeight: '600' }}>Potential Issues Detected</span>
+                                <div style={{ background: 'linear-gradient(to right, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05))', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '2.5rem', padding: '1.5rem', borderRadius: '12px' }}>
+                                    <div style={{ background: 'rgba(239, 68, 68, 0.2)', padding: '12px', borderRadius: '50%', display: 'flex' }}>
+                                        <AlertTriangle size={32} color="#ef4444" />
+                                    </div>
+                                    <div>
+                                        <div style={{ color: '#ef4444', fontSize: '1.3rem', fontWeight: '700', marginBottom: '4px' }}>Attention Needed</div>
+                                        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>Our AI has detected potential issues with your crop that require action.</div>
+                                    </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gap: '1.5rem' }}>
+                                <div style={{ display: 'grid', gap: '2.5rem' }}>
                                     {result.health_assessment?.diseases?.slice(0, 3).map((disease, idx) => (
-                                        <div key={idx} style={{ background: 'rgba(0, 0, 0, 0.2)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                                <h4 style={{ fontSize: '1.2rem', color: '#fca5a5', margin: 0 }}>{disease.name}</h4>
-                                                <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.85rem' }}>
+                                        <div key={idx} style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                                                <h4 style={{ fontSize: '1.6rem', color: '#f87171', margin: 0, fontWeight: '700' }}>{disease.name}</h4>
+                                                <div style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', padding: '8px 16px', borderRadius: '30px', fontSize: '0.95rem', fontWeight: '600', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
                                                     {(disease.probability * 100).toFixed(1)}% match
-                                                </span>
+                                                </div>
                                             </div>
 
                                             {disease.disease_details && (
-                                                <div style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6' }}>
+                                                <div style={{ color: 'rgba(255,255,255,0.85)', lineHeight: '1.7' }}>
                                                     {disease.disease_details.description && (
-                                                        <p style={{ marginBottom: '1rem' }}>{disease.disease_details.description}</p>
+                                                        <p style={{ marginBottom: '2.5rem', fontSize: '1.1rem' }}>{disease.disease_details.description}</p>
                                                     )}
 
                                                     {disease.disease_details.treatment && Object.keys(disease.disease_details.treatment).length > 0 && (
-                                                        <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(74, 222, 128, 0.05)', borderLeft: '3px solid var(--accent-green)', borderRadius: '0 8px 8px 0' }}>
-                                                            <strong style={{ color: 'var(--accent-green)', display: 'block', marginBottom: '0.5rem' }}>Recommended Treatment:</strong>
-                                                            <ul style={{ paddingLeft: '1.2rem', margin: 0 }}>
-                                                                {Object.entries(disease.disease_details.treatment).map(([key, value]) => (
-                                                                    <li key={key} style={{ marginBottom: '0.5rem', textTransform: 'capitalize' }}>
-                                                                        <strong>{key}: </strong>
-                                                                        {Array.isArray(value) ? value.join(', ') : value}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
+                                                        <div style={{ marginTop: '1rem' }}>
+                                                            <strong style={{ display: 'block', marginBottom: '1.5rem', fontSize: '1.2rem', color: '#fff' }}>Recommended Action Plan:</strong>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.2rem' }}>
+                                                                {Object.entries(disease.disease_details.treatment).map(([key, value]) => {
+                                                                    const items = Array.isArray(value) ? value : [value];
+                                                                    if (items.length === 0) return null;
+
+                                                                    return (
+                                                                        <div key={key} style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '1.5rem', transition: 'transform 0.2s ease, background 0.3s' }} className="treatment-card">
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.2rem' }}>
+                                                                                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px', display: 'flex' }}>
+                                                                                    {getTreatmentIcon(key)}
+                                                                                </div>
+                                                                                <strong style={{ color: getTreatmentColor(key), textTransform: 'capitalize', fontSize: '1.15rem' }}>{key} Treatment</strong>
+                                                                            </div>
+                                                                            <ul style={{ paddingLeft: '1.2rem', margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                                                                {items.map((item, id) => (
+                                                                                    <li key={id} style={{ lineHeight: '1.6' }}>{item}</li>
+                                                                                ))}
+                                                                            </ul>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
