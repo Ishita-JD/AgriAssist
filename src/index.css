@@ -62,11 +62,19 @@ body {
   transition: all 0.3s ease;
 }
 
+.navbar.scrolled {
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(15px);
+  padding: 1rem 4rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
 .nav-brand {
   display: flex;
   align-items: center;
   gap: 1rem;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .logo-img {
@@ -103,15 +111,33 @@ body {
 .nav-links a {
   text-decoration: none;
   color: #fff;
-  font-weight: 400;
-  font-size: 1rem;
+  font-weight: 500;
+  font-size: 0.95rem;
   transition: 0.3s;
-  opacity: 0.8;
+  opacity: 0.7;
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--secondary-color);
+  transition: 0.3s ease;
+  border-radius: 2px;
 }
 
 .nav-links a:hover {
   opacity: 1;
   color: var(--secondary-color);
+}
+
+.nav-links a:hover::after {
+  width: 100%;
 }
 
 .nav-auth {
@@ -121,32 +147,65 @@ body {
 
 .btn-login {
   color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   text-decoration: none;
   font-weight: 600;
-  padding: 0.6rem 1.2rem;
+  padding: 0.7rem 1.8rem;
   border-radius: 50px;
-  transition: 0.3s;
+  backdrop-filter: blur(5px);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
 }
 
 .btn-login:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--secondary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(253, 216, 53, 0.2);
 }
 
 .btn-signup {
-  background: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color) 0%, #1b5e20 100%);
   color: #fff;
+  border: none;
   text-decoration: none;
-  font-weight: 600;
-  padding: 0.8rem 1.8rem;
+  font-weight: 700;
+  padding: 0.85rem 2.2rem;
   border-radius: 50px;
-  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
-  transition: 0.3s;
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.btn-signup::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent);
+  transition: 0.6s;
+}
+
+.btn-signup:hover::before {
+  left: 100%;
 }
 
 .btn-signup:hover {
-  transform: translateY(-2px);
-  background: #388e3c;
-  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 10px 25px rgba(46, 125, 50, 0.5);
+  filter: brightness(1.1);
+}
+
+.btn-signup:active {
+  transform: translateY(0) scale(0.98);
 }
 
 /* Parallax Container */
@@ -360,4 +419,310 @@ body {
 .feature-card p {
   opacity: 0.6;
   line-height: 1.6;
+}
+
+/* Auth Modal Styles */
+.auth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.auth-modal {
+  background: #1a1a1a;
+  width: 100%;
+  max-width: 450px;
+  padding: 3rem;
+  border-radius: 24px;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.close-btn {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.close-btn:hover {
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+.auth-modal h2 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.auth-subtitle {
+  color: #888;
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+}
+
+.auth-methods {
+  display: flex;
+  background: #121212;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 2rem;
+}
+
+.method-btn {
+  flex: 1;
+  padding: 0.8rem;
+  border: none;
+  background: none;
+  color: #888;
+  cursor: pointer;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.method-btn.active {
+  background: #2a2a2a;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.input-group {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1.2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #555;
+  pointer-events: none;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3.5rem;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1rem;
+  transition: 0.3s;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: #2a2a2a;
+}
+
+.btn-auth-submit {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  padding: 1rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 0.5rem;
+}
+
+.btn-auth-submit:hover {
+  background: #388e3c;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(46, 125, 50, 0.4);
+}
+
+.auth-divider {
+  margin: 1.5rem 0;
+  position: relative;
+  height: 1px;
+  background: #333;
+}
+
+.auth-divider span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a1a1a;
+  padding: 0 1rem;
+  color: #555;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.btn-google {
+  width: 100%;
+  padding: 0.9rem;
+  background: #fff;
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-google:hover {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+}
+
+.auth-switch {
+  margin-top: 2rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.auth-switch span {
+  color: var(--secondary-color);
+  cursor: pointer;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.auth-switch span:hover {
+  text-decoration: underline;
+}
+
+.auth-error {
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  padding: 0.8rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  border: 1px solid rgba(244, 67, 54, 0.2);
+}
+
+#recaptcha-container {
+  margin-top: 10px;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 2px solid var(--secondary-color);
+}
+
+.btn-logout {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.btn-logout:hover {
+  background: rgba(244, 67, 54, 0.2);
+  border-color: #f44336;
+}
+
+/* Footer/Contact Styles */
+.contact-section {
+  padding: 8rem 4rem;
+  background: #0a0a0a;
+  color: #fff;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.footer-content {
+  max-width: 600px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 10;
+}
+
+.footer-content h3 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.5px;
+}
+
+.footer-content p {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 3rem;
+  line-height: 1.6;
+}
+
+.contact-links .btn-main {
+  background: var(--secondary-color);
+  color: #000;
+  padding: 1.2rem 3rem;
+  border-radius: 50px;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: all 0.4s ease;
+  display: inline-block;
+  box-shadow: 0 10px 20px rgba(253, 216, 53, 0.2);
+  cursor: pointer;
+}
+
+.contact-links .btn-main:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(253, 216, 53, 0.3);
+  filter: brightness(1.1);
+}
+
+/* Page Transition Animations */
+.page-transition-enter {
+  animation: pageFadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
