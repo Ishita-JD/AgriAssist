@@ -14,15 +14,15 @@ const Home = () => {
     }, []);
 
     const parallaxStyle = {
-        backgroundPositionY: scrollY * 0.65 + 'px'
+        transform: `translateY(${scrollY * 0.4}px) scale(1.1)`
     };
 
     const textParallaxStyle = {
-        transform: `translateY(${scrollY * -0.35}px)`
+        transform: `translateY(${scrollY * -0.45}px)`
     };
 
     const farmerParallaxStyle = {
-        transform: `translateY(${scrollY * 0.6}px)`
+        transform: `translateY(${scrollY * 0.8}px)`
     };
 
     return (
@@ -62,6 +62,8 @@ const Home = () => {
                     </div>
                 </header>
             </div>
+
+            <div className="black-transition-gap"></div>
 
             <section className="features-container" id="advisory">
                 <div className="feature-grid">
