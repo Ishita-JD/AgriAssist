@@ -1,33 +1,37 @@
 
-const https = require('https');
+// test_soil_api.js
+const lon = 72.8777;
+const lat = 19.0760;
+const url = `https://rest.isric.org/soilgrids/v2.0/properties/query?lon=${lon}&lat=${lat}&property=phh2o&property=nitrogen&property=clay&property=sand&depth=0-5cm&value=mean`;
 
-function fetchSoil(lon, lat) {
-    const url = `https://rest.isric.org/soilgrids/v2.0/properties/query?lon=${lon}&lat=${lat}&property=phh2o&property=nitrogen&property=clay&property=sand&depth=0-5cm&value=mean`;
+console.log(`📡 Fetching live soil data for Mumbai (Lon: ${lon}, Lat: ${lat})...`);
 
-    console.log(`Fetching: ${url}`);
-
-    https.get(url, (res) => {
-        let data = '';
-        res.on('data', (chunk) => {
-            data += chunk;
-        });
-        res.on('end', () => {
-            if (res.statusCode === 200) {
-                try {
-                    const json = JSON.parse(data);
-                    console.log(JSON.stringify(json, null, 2));
-                } catch (e) {
-                    console.error('Failed to parse JSON');
-                    console.log(data);
-                }
-            } else {
-                console.error(`Status Code: ${res.statusCode}`);
-                console.log(data);
-            }
-        });
-    }).on('error', (err) => {
-        console.error(`Error: ${err.message}`);
+try {
+    const response = await fetch(url, {
+        headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'AgriAssist-Test/1.0'
+        }
     });
-}
 
-fetchSoil(72.8777, 19.0760); // Mumbai
+    if (!response.ok) {
+        console.error(`❌ API Error: ${response.status} ${response.statusText}`);
+        const text = await response.text();
+        console.log("Response body:", text);
+    } else {
+        const data = await response.json();
+        console.log("✅ Data Received Successfully!");
+
+        if (data.properties && data.properties.layers) {
+            data.properties.layers.forEach(layer => {
+                const value = layer.depths[0]?.values?.mean;
+                const unit = layer.unit_measure?.target;
+                console.log(`- ${layer.label || layer.name}: ${value} ${unit}`);
+            });
+        } else {
+            console.log("⚠️ No layers found in response.");
+        }
+    }
+} catch (error) {
+    console.error(`❌ Fetch failed: ${error.message}`);
+}

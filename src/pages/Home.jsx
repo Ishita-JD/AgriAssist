@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Sun, Search, Sprout, Landmark, Facebook, Twitter, Instagram } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const Home = () => {
     const [scrollY, setScrollY] = useState(0);
+    const { t } = useLanguage();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -33,21 +35,15 @@ const Home = () => {
                     <div className="hero-overlay"></div>
 
                     <div className="hero-content" style={textParallaxStyle}>
-                        <h1 className="hero-title">
-                            Can crops <br />
-                            grow <br />
-                            smarter?
-                        </h1>
+                        <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: t('heroTitle').replace('?', '?<br/>') }}></h1>
                         <p className="hero-description">
-                            AgriAssist provides precision-driven insights for modern framing.
-                            Get weather-based suggestions, fertilizer recommendations, and
-                            instant disease detection to maximize your yield.
+                            {t('heroSubtitle')}
                         </p>
                         <div className="cta-group">
-                            <a href="#advisory" className="btn-main">
-                                Explore More <span className="arrow">→</span>
+                            <a href="/advisory" className="btn-main">
+                                {t('btnExplore')} <span className="arrow">→</span>
                             </a>
-                            <a href="#video" className="btn-secondary">Explore Demo</a>
+                            <a href="#video" className="btn-secondary">{t('btnDemo')}</a>
                         </div>
                     </div>
 
@@ -69,29 +65,29 @@ const Home = () => {
                         <div className="feature-icon">
                             <Sun size={40} className="icon-svg" />
                         </div>
-                        <h3>Smart Advisory</h3>
-                        <p>Get data-driven weather suggestions and local climate insights for optimal crop timing.</p>
+                        <h3>{t('featAdvisoryTitle')}</h3>
+                        <p>{t('featAdvisoryDesc')}</p>
                     </div>
                     <div className="feature-card" id="detector">
                         <div className="feature-icon">
                             <Search size={40} className="icon-svg" />
                         </div>
-                        <h3>Disease Identifier</h3>
-                        <p>Upload a photo of your plant and get instant diagnosis and preventive measures.</p>
+                        <h3>{t('featDetectorTitle')}</h3>
+                        <p>{t('featDetectorDesc')}</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon">
                             <Sprout size={40} className="icon-svg" />
                         </div>
-                        <h3>Fertilizer Guide</h3>
-                        <p>Precise recommendations for your crop type and location to ensure healthy growth.</p>
+                        <h3>{t('featFertilizerTitle')}</h3>
+                        <p>{t('featFertilizerDesc')}</p>
                     </div>
                     <div className="feature-card" id="schemes">
                         <div className="feature-icon">
                             <Landmark size={40} className="icon-svg" />
                         </div>
-                        <h3>Govt. Schemes</h3>
-                        <p>Stay updated with the latest government schemes, subsidies, and support for farmers.</p>
+                        <h3>{t('featSchemesTitle')}</h3>
+                        <p>{t('featSchemesDesc')}</p>
                     </div>
                 </div>
             </section>

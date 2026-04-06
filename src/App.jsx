@@ -8,6 +8,7 @@ import Advisory from './pages/Advisory';
 import Detector from './pages/Detector';
 import Schemes from './pages/Schemes';
 import Contact from './pages/Contact';
+import { LanguageProvider } from './context/LanguageContext';
 
 function App() {
   const [scrollY, setScrollY] = useState(0);
@@ -28,23 +29,25 @@ function App() {
   }, [location.pathname]);
 
   return (
-    <div className="main-wrapper">
-      <Navbar scrolled={scrollY > 50} onLoginClick={() => setIsAuthModalOpen(true)} />
+    <LanguageProvider>
+      <div className="main-wrapper">
+        <Navbar scrolled={scrollY > 50} onLoginClick={() => setIsAuthModalOpen(true)} />
 
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-      <main key={location.pathname} className="page-transition-enter">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/advisory" element={<Advisory />} />
-          <Route path="/detector" element={<Detector />} />
-          <Route path="/schemes" element={<Schemes />} />
-          <Route path="/contact" element={<Contact />} />
-        </Routes>
-      </main>
+        <main key={location.pathname} className="page-transition-enter">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/advisory" element={<Advisory />} />
+            <Route path="/detector" element={<Detector />} />
+            <Route path="/schemes" element={<Schemes />} />
+            <Route path="/contact" element={<Contact />} />
+          </Routes>
+        </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </LanguageProvider>
   );
 }
 

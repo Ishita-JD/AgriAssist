@@ -1,53 +1,68 @@
 import React from 'react';
 import { Landmark, Banknote, ShieldCheck, BookOpen, Tractor, Leaf } from 'lucide-react';
 import schemesBg from '../assets/indian_farmer_schemes.png';
-
-const schemes = [
-    {
-        icon: <Banknote size={32} />,
-        title: 'PM-KISAN',
-        badge: 'Income Support',
-        desc: 'Direct income support of ₹6,000 per year to eligible farmer families, transferred directly to bank accounts in three equal instalments.',
-        link: 'https://pmkisan.gov.in',
-    },
-    {
-        icon: <ShieldCheck size={32} />,
-        title: 'PM Fasal Bima Yojana',
-        badge: 'Crop Insurance',
-        desc: 'Comprehensive crop insurance scheme covering pre-sowing to post-harvest losses due to natural calamities, pests, and diseases.',
-        link: 'https://pmfby.gov.in',
-    },
-    {
-        icon: <Tractor size={32} />,
-        title: 'PMKSY',
-        badge: 'Irrigation',
-        desc: 'Pradhan Mantri Krishi Sinchai Yojana ensures water to every farm through micro-irrigation, watershed development, and water efficiency.',
-        link: 'https://pmksy.gov.in',
-    },
-    {
-        icon: <Leaf size={32} />,
-        title: 'Soil Health Card',
-        badge: 'Soil Management',
-        desc: 'Provides farmers with information on their soil\'s nutrient status and recommends appropriate dosages of nutrients to improve productivity.',
-        link: 'https://soilhealth.dac.gov.in',
-    },
-    {
-        icon: <BookOpen size={32} />,
-        title: 'e-NAM',
-        badge: 'Market Access',
-        desc: 'National Agriculture Market — an online trading platform for agricultural commodities, connecting farmers directly to buyers across India.',
-        link: 'https://enam.gov.in',
-    },
-    {
-        icon: <Landmark size={32} />,
-        title: 'KCC Scheme',
-        badge: 'Credit Support',
-        desc: 'Kisan Credit Card provides short-term credit to meet crop cultivation expenses, post-harvest expenses, and allied activities.',
-        link: 'https://www.nabard.org',
-    },
-];
+import { useLanguage } from '../context/LanguageContext';
 
 const Schemes = () => {
+    const { t, lang } = useLanguage();
+
+    const schemesData = [
+        {
+            icon: <Banknote size={32} />,
+            title: lang === 'hi' ? 'पीएम-किसान' : 'PM-KISAN',
+            badge: t('schBadges.income'),
+            desc: lang === 'hi' 
+                ? 'पात्र किसान परिवारों को प्रति वर्ष ₹6,000 की प्रत्यक्ष आय सहायता, तीन समान किस्तों में सीधे बैंक खातों में स्थानांतरित।'
+                : 'Direct income support of ₹6,000 per year to eligible farmer families, transferred directly to bank accounts in three equal instalments.',
+            link: 'https://pmkisan.gov.in',
+        },
+        {
+            icon: <ShieldCheck size={32} />,
+            title: lang === 'hi' ? 'पीएम फसल बीमा योजना' : 'PM Fasal Bima Yojana',
+            badge: t('schBadges.insurance'),
+            desc: lang === 'hi'
+                ? 'प्राकृतिक आपदाओं, कीटों और बीमारियों के कारण बुवाई से पहले और कटाई के बाद के नुकसान को कवर करने वाली व्यापक फसल बीमा योजना।'
+                : 'Comprehensive crop insurance scheme covering pre-sowing to post-harvest losses due to natural calamities, pests, and diseases.',
+            link: 'https://pmfby.gov.in',
+        },
+        {
+            icon: <Tractor size={32} />,
+            title: lang === 'hi' ? 'पीएमकेएसवाई' : 'PMKSY',
+            badge: t('schBadges.irrigation'),
+            desc: lang === 'hi'
+                ? 'प्रधानमंत्री कृषि सिंचाई योजना सूक्ष्म सिंचाई, जलसंभर विकास और जल दक्षता के माध्यम से हर खेत को पानी सुनिश्चित करती है।'
+                : 'Pradhan Mantri Krishi Sinchai Yojana ensures water to every farm through micro-irrigation, watershed development, and water efficiency.',
+            link: 'https://pmksy.gov.in',
+        },
+        {
+            icon: <Leaf size={32} />,
+            title: lang === 'hi' ? 'मृदा स्वास्थ्य कार्ड' : 'Soil Health Card',
+            badge: t('schBadges.soil'),
+            desc: lang === 'hi'
+                ? 'किसानों को उनकी मिट्टी की पोषक स्थिति के बारे में जानकारी प्रदान करता है और उत्पादकता में सुधार के लिए पोषक तत्वों की उचित खुराक की सिफारिश करता है।'
+                : 'Provides farmers with information on their soil\'s nutrient status and recommends appropriate dosages of nutrients to improve productivity.',
+            link: 'https://soilhealth.dac.gov.in',
+        },
+        {
+            icon: <BookOpen size={32} />,
+            title: lang === 'hi' ? 'ई-नाम' : 'e-NAM',
+            badge: t('schBadges.market'),
+            desc: lang === 'hi'
+                ? 'नेशनल एग्रीकल्चर मार्केट — कृषि वस्तुओं के लिए एक ऑनलाइन ट्रेडिंग प्लेटफॉर्म, जो किसानों को सीधे पूरे भारत में खरीदारों से जोड़ता है।'
+                : 'National Agriculture Market — an online trading platform for agricultural commodities, connecting farmers directly to buyers across India.',
+            link: 'https://enam.gov.in',
+        },
+        {
+            icon: <Landmark size={32} />,
+            title: lang === 'hi' ? 'केसीसी योजना' : 'KCC Scheme',
+            badge: t('schBadges.credit'),
+            desc: lang === 'hi'
+                ? 'किसान क्रेडिट कार्ड फसल की खेती के खर्च, कटाई के बाद के खर्च और संबद्ध गतिविधियों को पूरा करने के लिए अल्पकालिक क्रेडिट प्रदान करता है।'
+                : 'Kisan Credit Card provides short-term credit to meet crop cultivation expenses, post-harvest expenses, and allied activities.',
+            link: 'https://www.nabard.org',
+        },
+    ];
+
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
 
@@ -70,9 +85,9 @@ const Schemes = () => {
                 }} />
                 <div style={{ position: 'relative', zIndex: 1, padding: '0 2rem' }}>
                     <div style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>🏛️</div>
-                    <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '1rem' }}>Government Schemes</h1>
+                    <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '1rem' }}>{t('schHeroTitle')}</h1>
                     <p style={{ color: 'rgba(255,255,255,0.95)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                        Explore state & central government subsidies, insurance programs, and support schemes designed for Indian farmers.
+                        {t('schHeroSubtitle')}
                     </p>
                 </div>
             </div>
@@ -80,7 +95,7 @@ const Schemes = () => {
             {/* Scheme Cards */}
             <div style={{ padding: '4rem 4rem 6rem', maxWidth: '1200px', margin: '0 auto' }}>
                 <div className="feature-grid">
-                    {schemes.map((s) => (
+                    {schemesData.map((s) => (
                         <div key={s.title} className="feature-card" style={{ position: 'relative', paddingTop: '2rem' }}>
                             <span style={{
                                 position: 'absolute', top: '1rem', right: '1rem',
@@ -102,7 +117,7 @@ const Schemes = () => {
                                     paddingBottom: '2px'
                                 }}
                             >
-                                Learn More →
+                                {t('btnLearnMore')} →
                             </a>
                         </div>
                     ))}

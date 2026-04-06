@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Search, Upload, Leaf, AlertTriangle, CheckCircle, Camera, Loader, ShieldCheck, Bug, Droplets } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const getTreatmentIcon = (type) => {
     switch (type.toLowerCase()) {
@@ -26,6 +27,7 @@ const Detector = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
+    const { t } = useLanguage();
     const fileRef = useRef();
 
     const handleFile = (file) => {
@@ -109,9 +111,9 @@ const Detector = () => {
                 }} />
                 <div style={{ position: 'relative', zIndex: 1, padding: '0 2rem' }}>
                     <div style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>🔬</div>
-                    <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '1rem' }}>Disease Detector</h1>
+                    <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '1rem' }}>{t('detHeroTitle')}</h1>
                     <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
-                        Upload a photo of your crop and let our AI instantly identify diseases, pests, and deficiencies.
+                        {t('detHeroSubtitle')}
                     </p>
                 </div>
             </div>
@@ -142,8 +144,8 @@ const Detector = () => {
                     ) : (
                         <>
                             <Upload size={52} style={{ color: 'var(--accent-green)', marginBottom: '1rem', opacity: 0.8 }} />
-                            <h3 style={{ marginBottom: '0.5rem' }}>Upload Crop Image</h3>
-                            <p style={{ color: 'var(--text-muted)' }}>Drag & drop or click to browse — JPG, PNG supported</p>
+                            <h3 style={{ marginBottom: '0.5rem' }}>{t('detUploadTitle')}</h3>
+                            <p style={{ color: 'var(--text-muted)' }}>{t('detUploadDesc')}</p>
                         </>
                     )}
                 </div>
@@ -159,12 +161,12 @@ const Detector = () => {
                             {loading ? (
                                 <>
                                     <Loader size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-                                    Analyzing...
+                                    {t('btnAnalyzing')}
                                 </>
                             ) : (
                                 <>
                                     <Search size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-                                    Analyse Disease
+                                    {t('btnAnalyze')}
                                 </>
                             )}
                         </button>
@@ -173,7 +175,7 @@ const Detector = () => {
                             disabled={loading}
                             style={{ marginLeft: '1rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'var(--text-muted)', padding: '0.9rem 1.5rem', borderRadius: '8px', cursor: loading ? 'not-allowed' : 'pointer' }}
                         >
-                            Clear
+                            {t('btnClear')}
                         </button>
                     </div>
                 )}
@@ -189,12 +191,12 @@ const Detector = () => {
                 {/* Results Section */}
                 {result && (
                     <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--glass-border)', marginBottom: '3rem' }}>
-                        <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem' }}>Analysis Results</h3>
+                        <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem' }}>{t('detResultsTitle')}</h3>
 
                         {result.health_assessment?.is_healthy?.binary ? (
                             <div style={{ color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '12px', padding: '1rem', background: 'rgba(74, 222, 128, 0.1)', borderRadius: '8px' }}>
                                 <CheckCircle size={28} />
-                                <span style={{ fontSize: '1.2rem', fontWeight: '600' }}>Good news! Your crop appears healthy.</span>
+                                <span style={{ fontSize: '1.2rem', fontWeight: '600' }}>{t('detHealthy')}</span>
                             </div>
                         ) : (
                             <div>
@@ -203,8 +205,8 @@ const Detector = () => {
                                         <AlertTriangle size={32} color="#ef4444" />
                                     </div>
                                     <div>
-                                        <div style={{ color: '#ef4444', fontSize: '1.3rem', fontWeight: '700', marginBottom: '4px' }}>Attention Needed</div>
-                                        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>Our AI has detected potential issues with your crop that require action.</div>
+                                        <div style={{ color: '#ef4444', fontSize: '1.3rem', fontWeight: '700', marginBottom: '4px' }}>{t('detAttention')}</div>
+                                        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>{t('detAttentionDesc')}</div>
                                     </div>
                                 </div>
 
@@ -214,7 +216,7 @@ const Detector = () => {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                                                 <h4 style={{ fontSize: '1.6rem', color: '#f87171', margin: 0, fontWeight: '700' }}>{disease.name}</h4>
                                                 <div style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', padding: '8px 16px', borderRadius: '30px', fontSize: '0.95rem', fontWeight: '600', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-                                                    {(disease.probability * 100).toFixed(1)}% match
+                                                    {(disease.probability * 100).toFixed(1)}% {t('detMatch')}
                                                 </div>
                                             </div>
 
@@ -226,11 +228,15 @@ const Detector = () => {
 
                                                     {disease.disease_details.treatment && Object.keys(disease.disease_details.treatment).length > 0 && (
                                                         <div style={{ marginTop: '1rem' }}>
-                                                            <strong style={{ display: 'block', marginBottom: '1.5rem', fontSize: '1.2rem', color: '#fff' }}>Recommended Action Plan:</strong>
+                                                            <strong style={{ display: 'block', marginBottom: '1.5rem', fontSize: '1.2rem', color: '#fff' }}>{t('detActionPlan')}</strong>
                                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.2rem' }}>
                                                                 {Object.entries(disease.disease_details.treatment).map(([key, value]) => {
                                                                     const items = Array.isArray(value) ? value : [value];
                                                                     if (items.length === 0) return null;
+
+                                                                    const labelKey = key.toLowerCase() === 'chemical' ? 'detChemical' : 
+                                                                                   key.toLowerCase() === 'biological' ? 'detBiological' : 
+                                                                                   key.toLowerCase() === 'prevention' ? 'detPrevention' : null;
 
                                                                     return (
                                                                         <div key={key} style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '1.5rem', transition: 'transform 0.2s ease, background 0.3s' }} className="treatment-card">
@@ -238,7 +244,9 @@ const Detector = () => {
                                                                                 <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px', display: 'flex' }}>
                                                                                     {getTreatmentIcon(key)}
                                                                                 </div>
-                                                                                <strong style={{ color: getTreatmentColor(key), textTransform: 'capitalize', fontSize: '1.15rem' }}>{key} Treatment</strong>
+                                                                                <strong style={{ color: getTreatmentColor(key), textTransform: 'capitalize', fontSize: '1.15rem' }}>
+                                                                                    {labelKey ? t(labelKey) : key} {t('detTreatment')}
+                                                                                </strong>
                                                                             </div>
                                                                             <ul style={{ paddingLeft: '1.2rem', margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                                                                 {items.map((item, id) => (
@@ -265,23 +273,23 @@ const Detector = () => {
                 <div className="feature-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
                     <div className="feature-card">
                         <div className="feature-icon"><Camera size={32} className="icon-svg" /></div>
-                        <h3>Snap & Upload</h3>
-                        <p>Take a clear photo of the affected leaf or crop area and upload it directly for analysis.</p>
+                        <h3>{t('detStepSnap')}</h3>
+                        <p>{t('detStepSnapDesc')}</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon"><Leaf size={32} className="icon-svg" /></div>
-                        <h3>AI Diagnosis</h3>
-                        <p>Our deep learning model scans for 50+ plant diseases with high accuracy in under 5 seconds.</p>
+                        <h3>{t('detStepAI')}</h3>
+                        <p>{t('detStepAIDesc')}</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon"><AlertTriangle size={32} className="icon-svg" /></div>
-                        <h3>Treatment Advice</h3>
-                        <p>Get disease-specific treatment recommendations, pesticide guidance, and preventive measures.</p>
+                        <h3>{t('detStepAdvice')}</h3>
+                        <p>{t('detStepAdviceDesc')}</p>
                     </div>
                     <div className="feature-card">
                         <div className="feature-icon"><CheckCircle size={32} className="icon-svg" /></div>
-                        <h3>Track Recovery</h3>
-                        <p>Upload follow-up images to monitor crop recovery progress over time and adjust treatments.</p>
+                        <h3>{t('detStepTrack')}</h3>
+                        <p>{t('detStepTrackDesc')}</p>
                     </div>
                 </div>
             </div>

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, MessageCircle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const Contact = () => {
     const [sent, setSent] = useState(false);
+    const { t } = useLanguage();
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -33,9 +35,9 @@ const Contact = () => {
                 }} />
                 <div style={{ position: 'relative', zIndex: 1, padding: '0 2rem' }}>
                     <div style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>📬</div>
-                    <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '1rem' }}>Contact Us</h1>
+                    <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '1rem' }}>{t('conHeroTitle')}</h1>
                     <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
-                        Have questions? Our agricultural experts are here to help you grow smarter.
+                        {t('conHeroSubtitle')}
                     </p>
                 </div>
             </div>
@@ -51,7 +53,7 @@ const Contact = () => {
                                 <Mail size={22} className="icon-svg" />
                             </div>
                             <div>
-                                <h3 style={{ marginBottom: '0.3rem', fontSize: '1rem' }}>Email Us</h3>
+                                <h3 style={{ marginBottom: '0.3rem', fontSize: '1rem' }}>{t('conEmail')}</h3>
                                 <p style={{ margin: 0, fontSize: '0.9rem' }}>support@agriassist.com</p>
                             </div>
                         </div>
@@ -60,7 +62,7 @@ const Contact = () => {
                                 <Phone size={22} className="icon-svg" />
                             </div>
                             <div>
-                                <h3 style={{ marginBottom: '0.3rem', fontSize: '1rem' }}>Call Us</h3>
+                                <h3 style={{ marginBottom: '0.3rem', fontSize: '1rem' }}>{t('conCall')}</h3>
                                 <p style={{ margin: 0, fontSize: '0.9rem' }}>+91 1800-456-789 (Toll Free)</p>
                             </div>
                         </div>
@@ -69,7 +71,7 @@ const Contact = () => {
                                 <MapPin size={22} className="icon-svg" />
                             </div>
                             <div>
-                                <h3 style={{ marginBottom: '0.3rem', fontSize: '1rem' }}>Our Office</h3>
+                                <h3 style={{ marginBottom: '0.3rem', fontSize: '1rem' }}>{t('conOffice')}</h3>
                                 <p style={{ margin: 0, fontSize: '0.9rem' }}>AgriAssist HQ, Pune, Maharashtra, India - 411001</p>
                             </div>
                         </div>
@@ -78,7 +80,7 @@ const Contact = () => {
                                 <MessageCircle size={22} className="icon-svg" />
                             </div>
                             <div>
-                                <h3 style={{ marginBottom: '0.3rem', fontSize: '1rem' }}>Working Hours</h3>
+                                <h3 style={{ marginBottom: '0.3rem', fontSize: '1rem' }}>{t('conHours')}</h3>
                                 <p style={{ margin: 0, fontSize: '0.9rem' }}>Mon – Sat: 9:00 AM to 6:00 PM IST</p>
                             </div>
                         </div>
@@ -86,19 +88,19 @@ const Contact = () => {
 
                     {/* Contact Form */}
                     <div className="feature-card" style={{ padding: '2.5rem' }}>
-                        <h2 style={{ marginBottom: '1.5rem', fontSize: '1.6rem' }}>Send a Message</h2>
+                        <h2 style={{ marginBottom: '1.5rem', fontSize: '1.6rem' }}>{t('conFormTitle')}</h2>
                         {sent && (
                             <div style={{
                                 background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.4)',
                                 color: 'var(--accent-green)', borderRadius: '10px',
                                 padding: '0.9rem 1.2rem', marginBottom: '1.5rem', fontSize: '0.95rem'
                             }}>
-                                ✅ Message sent! We'll get back to you within 24 hours.
+                                ✅ {t('conSent')}
                             </div>
                         )}
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                             <input
-                                type="text" placeholder="Your Name" required
+                                type="text" placeholder={t('placeholderName')} required
                                 style={{
                                     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                                     borderRadius: '10px', padding: '0.9rem 1.2rem',
@@ -106,7 +108,7 @@ const Contact = () => {
                                 }}
                             />
                             <input
-                                type="email" placeholder="Email Address" required
+                                type="email" placeholder={t('placeholderEmail')} required
                                 style={{
                                     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                                     borderRadius: '10px', padding: '0.9rem 1.2rem',
@@ -114,7 +116,7 @@ const Contact = () => {
                                 }}
                             />
                             <input
-                                type="text" placeholder="Subject"
+                                type="text" placeholder={t('placeholderSubject')}
                                 style={{
                                     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                                     borderRadius: '10px', padding: '0.9rem 1.2rem',
@@ -122,7 +124,7 @@ const Contact = () => {
                                 }}
                             />
                             <textarea
-                                placeholder="Your message..." required rows={5}
+                                placeholder={t('placeholderMessage')} required rows={5}
                                 style={{
                                     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                                     borderRadius: '10px', padding: '0.9rem 1.2rem',
@@ -131,7 +133,7 @@ const Contact = () => {
                                 }}
                             />
                             <button type="submit" className="btn-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0.9rem' }}>
-                                <Send size={18} /> Send Message
+                                <Send size={18} /> {t('btnSendMessage')}
                             </button>
                         </form>
                     </div>

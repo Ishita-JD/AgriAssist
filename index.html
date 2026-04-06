@@ -8,11 +8,51 @@
   <meta name="description"
     content="AgriAssist - A smart crop advisory system providing weather-based suggestions, fertilizer recommendations, and crop disease identification for farmers." />
   <title>AgriAssist</title>
+  <style>
+    /* Remove top banner but don't over-hide */
+    .goog-te-banner-frame.skiptranslate {
+      display: none !important;
+    }
+    body {
+      top: 0 !important;
+    }
+    /* Google Translate Widget Styling */
+    #google_translate_element {
+      display: inline-block;
+      vertical-align: middle;
+      min-width: 150px;
+    }
+    .goog-te-gadget-simple {
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      padding: 6px 12px !important;
+      border-radius: 12px !important;
+      font-family: inherit !important;
+      font-size: 0.9rem !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+    }
+    .goog-te-gadget-simple span {
+      color: #72ec7c !important; /* Secondary brand color */
+    }
+    .goog-te-gadget-icon {
+      display: none !important;
+    }
+    .goog-logo-link {
+      display: none !important;
+    }
+    .goog-te-gadget {
+      color: transparent !important;
+    }
+  </style>
 </head>
 
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
+  
 </body>
 
 </html>

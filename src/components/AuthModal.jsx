@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, Chrome, X } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const AuthModal = ({ isOpen, onClose }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -8,10 +9,31 @@ const AuthModal = ({ isOpen, onClose }) => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const { login, signup, googleLogin } = useAuth();
+    const { t, lang } = useLanguage();
 
     if (!isOpen) return null;
 
     const getFriendlyError = (code) => {
+        if (lang === 'hi') {
+            switch (code) {
+                case 'auth/invalid-credential':
+                case 'auth/wrong-password':
+                case 'auth/user-not-found':
+                    return 'गलत ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।';
+                case 'auth/email-already-in-use':
+                    return 'इस ईमेल वाला खाता पहले से मौजूद है। लॉग इन करने का प्रयास करें।';
+                case 'auth/weak-password':
+                    return 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।';
+                case 'auth/invalid-email':
+                    return 'कृपया एक वैध ईमेल पता दर्ज करें।';
+                case 'auth/too-many-requests':
+                    return 'बहुत अधिक विफल प्रयास। कृपया थोड़ा इंतज़ार करें और पुनः प्रयास करें।';
+                case 'auth/network-request-failed':
+                    return 'नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।';
+                default:
+                    return 'कुछ गलत हो गया। कृपया पुनः प्रयास करें।';
+            }
+        }
         switch (code) {
             case 'auth/invalid-credential':
             case 'auth/wrong-password':
@@ -53,7 +75,6 @@ const AuthModal = ({ isOpen, onClose }) => {
             await googleLogin();
             onClose();
         } catch (err) {
-            // User simply closed the popup — not a real error, ignore silently
             if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
                 return;
             }
@@ -66,9 +87,9 @@ const AuthModal = ({ isOpen, onClose }) => {
             <div className="auth-modal">
                 <button className="close-btn" onClick={onClose}><X size={24} /></button>
 
-                <h2>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+                <h2>{isLogin ? t('authWelcome') : t('authCreate')}</h2>
                 <p className="auth-subtitle">
-                    {isLogin ? 'Enter your details to access your account' : 'Join AgriAssist and grow smarter today'}
+                    {isLogin ? t('authSubtitleLogin') : t('authSubtitleSignup')}
                 </p>
 
                 {error && <div className="auth-error">{error}</div>}
@@ -78,7 +99,7 @@ const AuthModal = ({ isOpen, onClose }) => {
                         <Mail className="input-icon" size={20} />
                         <input
                             type="email"
-                            placeholder="Email Address"
+                            placeholder={t('placeholderEmail')}
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -96,23 +117,23 @@ const AuthModal = ({ isOpen, onClose }) => {
                     </div>
 
                     <button type="submit" className="btn-auth-submit">
-                        {isLogin ? 'Login' : 'Sign Up'}
+                        {isLogin ? t('navLogin') : t('navSignup')}
                     </button>
                 </form>
 
                 <div className="auth-divider">
-                    <span>OR</span>
+                    <span>{t('authOr')}</span>
                 </div>
 
                 <button className="btn-google" onClick={handleGoogleLogin}>
                     <Chrome size={20} style={{ marginRight: '10px' }} />
-                    Continue with Google
+                    {t('authGoogle')}
                 </button>
 
                 <p className="auth-switch">
-                    {isLogin ? "Don't have an account? " : "Already have an account? "}
+                    {isLogin ? t('authSwitchLogin') : t('authSwitchSignup')}
                     <span onClick={() => setIsLogin(!isLogin)}>
-                        {isLogin ? 'Sign Up' : 'Login'}
+                        {isLogin ? t('navSignup') : t('navLogin')}
                     </span>
                 </p>
             </div>
