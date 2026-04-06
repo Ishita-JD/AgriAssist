@@ -2,21 +2,79 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const mongoose = require('mongoose');
 
 // Load environment variables from correct path
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+// Try to load Message model if it exists, otherwise just ignore or define inline to prevent crash
+let Message;
+try {
+    Message = require('./models/Message');
+} catch (e) {
+    console.warn("Could not load Message model. Make sure it exists in ./models/Message.js", e.message);
+}
 
-app.use(cors());
+const app = express();
+const PORT = process.env.PORT || process.env.SERVER_PORT || 5000;
+
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
+
+// MongoDB Connection
+if (process.env.MONGODB_URI) {
+    mongoose
+        .connect(process.env.MONGODB_URI)
+        .then(() => console.log('✅ MongoDB connected successfully'))
+        .catch((err) => console.error('❌ MongoDB connection error:', err));
+} else {
+    console.log('⚠️ No MONGODB_URI found in .env, skipping MongoDB connection.');
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', port: PORT });
 });
 
+// ─── Contact Routes ────────────────────────────────────────────────────────
+// POST /api/contact  — save a new message
+app.post('/api/contact', async (req, res) => {
+    try {
+        const { name, email, subject, message } = req.body;
+
+        if (!name || !email || !message) {
+            return res.status(400).json({ error: 'Name, email, and message are required.' });
+        }
+
+        if (Message) {
+            const newMessage = await Message.create({ name, email, subject, message });
+            res.status(201).json({ success: true, data: newMessage });
+        } else {
+            // Mock success if no DB
+            console.log("Mock saved msg:", { name, email, subject, message });
+            res.status(201).json({ success: true, data: { name, email, subject, message } });
+        }
+    } catch (err) {
+        console.error('Error saving message:', err);
+        res.status(500).json({ error: 'Server error. Please try again.' });
+    }
+});
+
+// GET /api/contact  — retrieve all messages (admin use)
+app.get('/api/contact', async (req, res) => {
+    try {
+        if (Message) {
+            const messages = await Message.find().sort({ createdAt: -1 });
+            res.json({ success: true, data: messages });
+        } else {
+            res.json({ success: true, data: [] });
+        }
+    } catch (err) {
+        res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// ─── Advisory Route ────────────────────────────────────────────────────────
 // Main Advisory API Endpoint
 app.get('/api/advisory', async (req, res) => {
     const { city, crop, lat, lon } = req.query;

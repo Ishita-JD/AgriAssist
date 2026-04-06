@@ -3,19 +3,42 @@ import { Mail, Phone, MapPin, Send, MessageCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const Contact = () => {
-    const [sent, setSent] = useState(false);
     const { t } = useLanguage();
+    const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
+    const [status, setStatus] = useState('idle'); // idle | loading | success | error
+    const [errorMsg, setErrorMsg] = useState('');
 
-    const handleSubmit = (e) => {
+    const handleChange = (e) => {
+        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setSent(true);
-        setTimeout(() => setSent(false), 4000);
-        e.target.reset();
+        setStatus('loading');
+        setErrorMsg('');
+
+        try {
+            const res = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(form),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+            setStatus('success');
+            setForm({ name: '', email: '', subject: '', message: '' });
+            setTimeout(() => setStatus('idle'), 4000);
+        } catch (err) {
+            setErrorMsg(err.message);
+            setStatus('error');
+        }
     };
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-
             {/* Hero Banner */}
             <div style={{
                 position: 'relative',
@@ -45,7 +68,6 @@ const Contact = () => {
             {/* Content */}
             <div style={{ padding: '4rem 4rem 6rem', maxWidth: '1100px', margin: '0 auto' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '2.5rem', alignItems: 'start' }}>
-
                     {/* Info Cards */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         <div className="feature-card" style={{ display: 'flex', alignItems: 'flex-start', gap: '1.2rem', padding: '1.5rem' }}>
@@ -89,7 +111,9 @@ const Contact = () => {
                     {/* Contact Form */}
                     <div className="feature-card" style={{ padding: '2.5rem' }}>
                         <h2 style={{ marginBottom: '1.5rem', fontSize: '1.6rem' }}>{t('conFormTitle')}</h2>
-                        {sent && (
+
+                        {/* Success */}
+                        {status === 'success' && (
                             <div style={{
                                 background: 'rgba(74,222,128,0.15)', border: '1px solid rgba(74,222,128,0.4)',
                                 color: 'var(--accent-green)', borderRadius: '10px',
@@ -98,9 +122,22 @@ const Contact = () => {
                                 ✅ {t('conSent')}
                             </div>
                         )}
+
+                        {/* Error */}
+                        {status === 'error' && (
+                            <div style={{
+                                background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
+                                color: '#f87171', borderRadius: '10px',
+                                padding: '0.9rem 1.2rem', marginBottom: '1.5rem', fontSize: '0.95rem'
+                            }}>
+                                ❌ {errorMsg}
+                            </div>
+                        )}
+
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                             <input
-                                type="text" placeholder={t('placeholderName')} required
+                                type="text" name="name" placeholder={t('placeholderName')} required
+                                value={form.name} onChange={handleChange}
                                 style={{
                                     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                                     borderRadius: '10px', padding: '0.9rem 1.2rem',
@@ -108,7 +145,8 @@ const Contact = () => {
                                 }}
                             />
                             <input
-                                type="email" placeholder={t('placeholderEmail')} required
+                                type="email" name="email" placeholder={t('placeholderEmail')} required
+                                value={form.email} onChange={handleChange}
                                 style={{
                                     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                                     borderRadius: '10px', padding: '0.9rem 1.2rem',
@@ -116,7 +154,8 @@ const Contact = () => {
                                 }}
                             />
                             <input
-                                type="text" placeholder={t('placeholderSubject')}
+                                type="text" name="subject" placeholder={t('placeholderSubject')}
+                                value={form.subject} onChange={handleChange}
                                 style={{
                                     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                                     borderRadius: '10px', padding: '0.9rem 1.2rem',
@@ -124,7 +163,8 @@ const Contact = () => {
                                 }}
                             />
                             <textarea
-                                placeholder={t('placeholderMessage')} required rows={5}
+                                name="message" placeholder={t('placeholderMessage')} required rows={5}
+                                value={form.message} onChange={handleChange}
                                 style={{
                                     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                                     borderRadius: '10px', padding: '0.9rem 1.2rem',
@@ -132,8 +172,14 @@ const Contact = () => {
                                     resize: 'vertical', fontFamily: 'inherit',
                                 }}
                             />
-                            <button type="submit" className="btn-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0.9rem' }}>
-                                <Send size={18} /> {t('btnSendMessage')}
+                            <button
+                                type="submit"
+                                className="btn-main"
+                                disabled={status === 'loading'}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0.9rem', opacity: status === 'loading' ? 0.7 : 1, cursor: status === 'loading' ? 'not-allowed' : 'pointer' }}
+                            >
+                                <Send size={18} />
+                                {status === 'loading' ? 'Sending...' : t('btnSendMessage')}
                             </button>
                         </form>
                     </div>
