@@ -3,16 +3,16 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const mongoose = require('mongoose');
+const { generateAdvisory } = require('./utils/advisoryEngine');
+const { calculateRisk } = require('./utils/riskEngine');
 
-// Load environment variables from correct path
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-// Try to load Message model if it exists, otherwise just ignore or define inline to prevent crash
 let Message;
 try {
     Message = require('./models/Message');
 } catch (e) {
-    console.warn("Could not load Message model. Make sure it exists in ./models/Message.js", e.message);
+    console.warn('Could not load Message model. Make sure it exists in ./models/Message.js', e.message);
 }
 
 const app = express();
@@ -21,23 +21,131 @@ const PORT = process.env.PORT || process.env.SERVER_PORT || 5000;
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 
-// MongoDB Connection
+async function fetchWeatherData(district) {
+    try {
+        const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(district)}&count=1&language=en&format=json`;
+        const geocodeRes = await fetch(geocodeUrl, { signal: AbortSignal.timeout(8000) });
+
+        if (!geocodeRes.ok) {
+            throw new Error('Geocoding request failed');
+        }
+
+        const geocodeData = await geocodeRes.json();
+        const location = geocodeData.results?.[0];
+
+        if (!location) {
+            return {
+                temperature: null,
+                rain: null,
+                wind: null,
+                fallback: true,
+                error: 'Location not found.'
+            };
+        }
+
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,wind_speed_10m&hourly=precipitation_probability&timezone=auto`;
+        const weatherRes = await fetch(weatherUrl, { signal: AbortSignal.timeout(8000) });
+
+        if (!weatherRes.ok) {
+            throw new Error('Weather request failed');
+        }
+
+        const weatherData = await weatherRes.json();
+        const current = weatherData.current;
+        const rainProb = weatherData.hourly?.precipitation_probability?.[0] ?? 0;
+
+        if (!current) {
+            throw new Error('Invalid weather data');
+        }
+
+        return {
+            temperature: current.temperature_2m,
+            rain: rainProb,
+            wind: current.wind_speed_10m
+        };
+    } catch (error) {
+        console.error('Weather API error:', error.message);
+        return {
+            temperature: null,
+            rain: null,
+            wind: null,
+            fallback: true
+        };
+    }
+}
+
+async function fetchMandiData(crop) {
+    try {
+        const apiKey = process.env.DATA_GOV_API_KEY || '579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b';
+        const mandiUrl = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${apiKey}&format=json&limit=10&filters[commodity]=${encodeURIComponent(crop)}`;
+        const mandiRes = await fetch(mandiUrl, { signal: AbortSignal.timeout(10000) });
+
+        if (!mandiRes.ok) {
+            throw new Error('Mandi request failed');
+        }
+
+        const mandiData = await mandiRes.json();
+        const prices = (mandiData.records || [])
+            .map((record) => Number(record.modal_price))
+            .filter((price) => Number.isFinite(price));
+
+        if (prices.length === 0) {
+            return {
+                crop,
+                averagePrice: null,
+                trend: 'stable',
+                fallback: true
+            };
+        }
+
+        const averagePrice = Math.round(
+            prices.reduce((sum, price) => sum + price, 0) / prices.length
+        );
+
+        let trend = 'stable';
+        if (prices.length > 1) {
+            const increasing = prices.every((price, index) => index === 0 || price >= prices[index - 1]) &&
+                prices.some((price, index) => index > 0 && price > prices[index - 1]);
+
+            const decreasing = prices.every((price, index) => index === 0 || price <= prices[index - 1]) &&
+                prices.some((price, index) => index > 0 && price < prices[index - 1]);
+
+            if (increasing) {
+                trend = 'up';
+            } else if (decreasing) {
+                trend = 'down';
+            }
+        }
+
+        return {
+            crop,
+            averagePrice,
+            trend
+        };
+    } catch (error) {
+        console.error('Mandi API error:', error.message);
+        return {
+            crop,
+            averagePrice: null,
+            trend: 'stable',
+            fallback: true
+        };
+    }
+}
+
 if (process.env.MONGODB_URI) {
     mongoose
         .connect(process.env.MONGODB_URI)
-        .then(() => console.log('✅ MongoDB connected successfully'))
-        .catch((err) => console.error('❌ MongoDB connection error:', err));
+        .then(() => console.log('MongoDB connected successfully'))
+        .catch((err) => console.error('MongoDB connection error:', err));
 } else {
-    console.log('⚠️ No MONGODB_URI found in .env, skipping MongoDB connection.');
+    console.log('No MONGODB_URI found in .env, skipping MongoDB connection.');
 }
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', port: PORT });
 });
 
-// ─── Contact Routes ────────────────────────────────────────────────────────
-// POST /api/contact  — save a new message
 app.post('/api/contact', async (req, res) => {
     try {
         const { name, email, subject, message } = req.body;
@@ -48,300 +156,125 @@ app.post('/api/contact', async (req, res) => {
 
         if (Message) {
             const newMessage = await Message.create({ name, email, subject, message });
-            res.status(201).json({ success: true, data: newMessage });
-        } else {
-            // Mock success if no DB
-            console.log("Mock saved msg:", { name, email, subject, message });
-            res.status(201).json({ success: true, data: { name, email, subject, message } });
+            return res.status(201).json({ success: true, data: newMessage });
         }
+
+        console.log('Mock saved msg:', { name, email, subject, message });
+        return res.status(201).json({ success: true, data: { name, email, subject, message } });
     } catch (err) {
         console.error('Error saving message:', err);
-        res.status(500).json({ error: 'Server error. Please try again.' });
+        return res.status(500).json({ error: 'Server error. Please try again.' });
     }
 });
 
-// GET /api/contact  — retrieve all messages (admin use)
 app.get('/api/contact', async (req, res) => {
     try {
         if (Message) {
             const messages = await Message.find().sort({ createdAt: -1 });
-            res.json({ success: true, data: messages });
-        } else {
-            res.json({ success: true, data: [] });
+            return res.json({ success: true, data: messages });
         }
+
+        return res.json({ success: true, data: [] });
     } catch (err) {
-        res.status(500).json({ error: 'Server error.' });
+        return res.status(500).json({ error: 'Server error.' });
     }
 });
 
-// ─── Advisory Route ────────────────────────────────────────────────────────
-// Main Advisory API Endpoint
+app.get('/api/weather', async (req, res) => {
+    const district = req.query.district?.trim();
+
+    if (!district) {
+        return res.status(400).json({ error: 'District is required.' });
+    }
+
+    const weather = await fetchWeatherData(district);
+
+    if (weather.error === 'Location not found.') {
+        return res.status(404).json({ error: 'Location not found.' });
+    }
+
+    return res.json(weather);
+});
+
+app.get('/api/mandi', async (req, res) => {
+    const crop = req.query.crop?.trim();
+
+    if (!crop) {
+        return res.status(400).json({ error: 'Crop is required.' });
+    }
+
+    const market = await fetchMandiData(crop);
+    return res.json(market);
+});
+
 app.get('/api/advisory', async (req, res) => {
-    const { city, crop, lat, lon } = req.query;
+    const district = req.query.district?.trim();
+    const crop = req.query.crop?.trim();
+    const soilType = req.query.soilType?.trim();
+
+    if (!district || !crop || !soilType) {
+        return res.status(400).json({ error: 'District, crop, and soilType are required.' });
+    }
 
     try {
-        let latitude = lat;
-        let longitude = lon;
-        let locationName = city || 'Your Location';
+        const weather = await fetchWeatherData(district);
+        const market = await fetchMandiData(crop);
+        const advisory = generateAdvisory({
+            weather: { rain: weather.rain, wind: weather.wind },
+            marketTrend: market.trend,
+            soilType,
+            crop
+        });
+        const risk = calculateRisk({
+            weather: { rain: weather.rain, wind: weather.wind },
+            marketTrend: market.trend,
+            soilType,
+            crop
+        });
 
-        // 1. Geocoding if city is provided and no lat/lon
-        if (city && (!lat || !lon)) {
-            try {
-                const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`;
-                const geoRes = await fetch(geoUrl, {
-                    headers: { 'User-Agent': 'AgriAssist-Server/1.0' },
-                    signal: AbortSignal.timeout(8000)
-                });
-                const geoData = await geoRes.json();
-
-                if (!geoData || geoData.length === 0) {
-                    return res.status(404).json({ error: `Location "${city}" not found. Try a different city name.` });
-                }
-                latitude = geoData[0].lat;
-                longitude = geoData[0].lon;
-                locationName = geoData[0].display_name.split(',').slice(0, 3).join(', ');
-            } catch (geoErr) {
-                console.error('Geocoding failed:', geoErr.message);
-                return res.status(503).json({ error: 'Location lookup failed. Please check your internet connection and try again.' });
-            }
-        }
-
-        if (!latitude || !longitude) {
-            return res.status(400).json({ error: 'Please provide a city name or enable location access.' });
-        }
-
-        // 2. Fetch Weather from Open-Meteo (free, no key needed)
-        let current;
-        try {
-            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,soil_temperature_0_to_7cm,soil_moisture_0_to_7cm&timezone=auto`;
-            const weatherRes = await fetch(weatherUrl, { signal: AbortSignal.timeout(10000) });
-            const weatherData = await weatherRes.json();
-            current = weatherData.current;
-
-            if (!current) {
-                throw new Error("Weather service returned invalid data.");
-            }
-        } catch (weatherErr) {
-            console.warn('Weather fetch failed or invalid data:', weatherErr.message);
-            console.log('Using fallback mock weather data due to API failure.');
-            
-            current = {
-                temperature_2m: 28,
-                relative_humidity_2m: 60,
-                apparent_temperature: 30,
-                is_day: 1,
-                precipitation: 0,
-                rain: 0,
-                showers: 0,
-                snowfall: 0,
-                weather_code: 0,
-                wind_speed_10m: 12,
-                soil_temperature_0_to_7cm: 26,
-                soil_moisture_0_to_7cm: 0.35
-            };
-        }
-
-        // 3. Fetch Advanced Soil Data (optional, fails silently)
-        let advancedSoil = null;
-        try {
-            const soilUrl = `https://rest.isric.org/soilgrids/v2.0/properties/query?lon=${longitude}&lat=${latitude}&property=phh2o&property=nitrogen&property=clay&property=sand&depth=0-5cm&value=mean`;
-            const soilRes = await fetch(soilUrl, {
-                headers: { 'Accept': 'application/json', 'User-Agent': 'AgriAssist-Server/1.0' },
-                signal: AbortSignal.timeout(12000)
-            });
-            if (soilRes.ok) {
-                const soilData = await soilRes.json();
-                if (soilData.properties && soilData.properties.layers) {
-                    const props = soilData.properties.layers;
-                    advancedSoil = {
-                        ph: (props.find(l => l.name?.includes('phh2o'))?.depths[0]?.values?.mean / 10) || 'N/A',
-                        nitrogen: props.find(l => (l.name?.includes('nitrogen') || l.label?.toLowerCase()?.includes('nitrogen')))?.depths[0]?.values?.mean || 'N/A',
-                        clay: (props.find(l => l.name?.includes('clay'))?.depths[0]?.values?.mean / 10) || 'N/A',
-                        sand: (props.find(l => l.name?.includes('sand'))?.depths[0]?.values?.mean / 10) || 'N/A'
-                    };
-                }
-            }
-        } catch (soilErr) {
-            console.warn('SoilGrids API unavailable (non-critical):', soilErr.message);
-        }
-
-        // 4. Generate AI Advice (optional, fails silently and uses fallback)
-        const targetCrop = crop || 'General Season Crops';
-        const apiKey = process.env.VITE_OPENAI_API_KEY;
-        let aiAdvice = null;
-
-        if (apiKey && apiKey !== 'your_openai_api_key_here') {
-            const prompt = `You are an expert agricultural advisor. Analyze these real-time conditions and provide farming advice.
-
-Location weather data:
-- Temperature: ${current.temperature_2m}°C
-- Humidity: ${current.relative_humidity_2m}%
-- Wind Speed: ${current.wind_speed_10m} km/h
-- Currently: ${current.precipitation > 0 ? 'Raining' : 'Dry'}
-- Soil Temperature: ${current.soil_temperature_0_to_7cm}°C
-- Soil Moisture: ${Math.round(current.soil_moisture_0_to_7cm * 100)}%
-${advancedSoil ? `- Soil pH: ${advancedSoil.ph}, Nitrogen: ${advancedSoil.nitrogen} cg/kg, Clay: ${advancedSoil.clay}%, Sand: ${advancedSoil.sand}%` : ''}
-
-Crop focus: ${targetCrop === 'General Season Crops' ? 'Suggest the top 3 best crops for these conditions' : `"${targetCrop}" (user specified)`}
-
-Respond with ONLY a valid JSON object, no markdown, no extra text:
-{
-  "crop": "crop name",
-  "suggestions": ["crop1", "crop2", "crop3"],
-  "suitability": "Highly Suitable / Moderately Suitable / Low Suitability",
-  "irrigation": "specific irrigation advice",
-  "tempAlert": "Normal / Caution: high temp / Alert: frost risk",
-  "windAlert": "Normal / Caution: high winds",
-  "tips": "one key actionable tip",
-  "fertilizer": "specific NPK or organic fertilizer advice",
-  "diseaseRisk": "Low / Moderate: risk name / High: risk name",
-  "roadmap": ["immediate action 1", "this week action 2", "this month action 3"],
-  "naturalAdvice": "2-3 sentence friendly summary for the farmer"
-}`;
-
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
-
-                const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4o-mini', // faster and cheaper than gpt-4o
-                        messages: [{ role: 'user', content: prompt }],
-                        response_format: { type: 'json_object' },
-                        temperature: 0.7
-                    }),
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (aiRes.ok) {
-                    const aiData = await aiRes.json();
-                    const content = aiData.choices?.[0]?.message?.content;
-                    if (content) {
-                        aiAdvice = JSON.parse(content);
-                        console.log(`✅ AI advice generated for ${targetCrop} at ${locationName}`);
-                    }
-                } else {
-                    const errData = await aiRes.json().catch(() => ({}));
-                    console.warn(`⚠️ OpenAI API error (${aiRes.status}): ${errData?.error?.message || 'unknown'}. Using fallback logic.`);
-                }
-            } catch (aiErr) {
-                if (aiErr.name === 'AbortError') {
-                    console.warn('⚠️ OpenAI request timed out. Using fallback logic.');
-                } else {
-                    console.warn('⚠️ OpenAI call failed:', aiErr.message, '— Using fallback logic.');
-                }
-            }
-        } else {
-            console.log('ℹ️ No valid OpenAI key found. Using smart fallback logic.');
-        }
-
-        // 5. Build and send response — ALWAYS succeeds
-        const responseData = {
-            weather: {
-                name: locationName,
-                lat: latitude,
-                lon: longitude,
-                temp: current.temperature_2m,
-                humidity: current.relative_humidity_2m,
-                windSpeed: current.wind_speed_10m,
-                precipitation: current.precipitation,
-                weatherCode: current.weather_code,
-                soilTemp: current.soil_temperature_0_to_7cm,
-                soilMoisture: current.soil_moisture_0_to_7cm,
-                advancedSoil,
-                isRaining: current.precipitation > 0
-            },
-            recommendations: aiAdvice || smartFallback(current, advancedSoil, targetCrop),
-            usingAI: !!aiAdvice
-        };
-
-        console.log(`✅ Advisory served for "${locationName}" — AI: ${!!aiAdvice}`);
-        res.json(responseData);
-
+        return res.json({
+            weather,
+            market,
+            advisory,
+            risk
+        });
     } catch (error) {
-        console.error('Unexpected server error:', error);
-        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
+        console.error('Advisory API error:', error.message);
+
+        const weather = {
+            temperature: null,
+            rain: null,
+            wind: null,
+            fallback: true
+        };
+        const market = {
+            crop,
+            averagePrice: null,
+            trend: 'stable',
+            fallback: true
+        };
+        const advisory = generateAdvisory({
+            weather: { rain: weather.rain, wind: weather.wind },
+            marketTrend: market.trend,
+            soilType,
+            crop
+        });
+        const risk = calculateRisk({
+            weather: { rain: weather.rain, wind: weather.wind },
+            marketTrend: market.trend,
+            soilType,
+            crop
+        });
+
+        return res.json({
+            weather,
+            market,
+            advisory,
+            risk
+        });
     }
 });
 
-// Smart Fallback Logic (data-driven, no AI needed)
-function smartFallback(current, advancedSoil, targetCrop) {
-    const temp = current.temperature_2m;
-    const humidity = current.relative_humidity_2m;
-    const soilMoisture = current.soil_moisture_0_to_7cm;
-    const windSpeed = current.wind_speed_10m;
-    const isRaining = current.precipitation > 0;
-
-    // Crop suggestions based on temperature
-    let suggestedCrops = ['Wheat', 'Mustard', 'Chickpea'];
-    if (temp >= 25 && temp <= 35) suggestedCrops = ['Rice', 'Maize', 'Cotton'];
-    else if (temp >= 20 && temp < 25) suggestedCrops = ['Tomato', 'Potato', 'Onion'];
-    else if (temp < 15) suggestedCrops = ['Wheat', 'Barley', 'Peas'];
-
-    const crop = targetCrop === 'General Season Crops' ? suggestedCrops[0] : targetCrop;
-
-    // Suitability
-    const suitability = (temp >= 15 && temp <= 35 && humidity >= 40 && humidity <= 80)
-        ? 'Moderately Suitable' : temp > 35 ? 'Low Suitability (heat stress)' : 'Moderately Suitable';
-
-    // Irrigation
-    let irrigation = 'Monitor soil moisture daily.';
-    if (soilMoisture < 0.15) irrigation = '⚠️ Immediate irrigation needed — soil is very dry.';
-    else if (soilMoisture < 0.25) irrigation = 'Irrigate within 2 days — soil moisture is low.';
-    else if (isRaining) irrigation = 'Skip irrigation today — natural rainfall is sufficient.';
-    else if (soilMoisture > 0.4) irrigation = 'Good soil moisture — irrigate only if no rain for 3+ days.';
-
-    // Temperature risk
-    let tempAlert = 'Normal';
-    if (temp > 38) tempAlert = 'Alert: Severe heat stress — apply shade & extra water.';
-    else if (temp > 35) tempAlert = 'Caution: High temperature — consider shade nets & drip irrigation.';
-    else if (temp < 10) tempAlert = 'Caution: Cold stress risk — consider frost protection overnight.';
-
-    // Disease risk
-    let diseaseRisk = 'Low';
-    if (humidity > 80 && temp > 20) diseaseRisk = 'Moderate: Fungal disease risk (blight, mildew) — monitor leaves.';
-    else if (humidity > 90) diseaseRisk = 'High: Very high humidity — spray preventive fungicide.';
-
-    // Fertilizer
-    let fertilizer = 'Apply balanced NPK (10:26:26) at recommended dosage.';
-    if (advancedSoil?.nitrogen && advancedSoil.nitrogen < 50) fertilizer = 'Nitrogen deficient — apply Urea (46-0-0) @ 50 kg/acre.';
-    else if (isRaining) fertilizer = 'Delay fertilizer application — rain may cause runoff and waste.';
-
-    // Wind
-    const windAlert = windSpeed > 30 ? 'Caution: Strong winds — delay spraying and protect seedlings.'
-        : windSpeed > 20 ? 'Moderate winds — avoid overhead irrigation.'
-        : 'Normal';
-
-    // Roadmap
-    const roadmap = [
-        soilMoisture < 0.2 ? 'Irrigate fields immediately (soil moisture critical)' : 'Check irrigation schedule for the week',
-        humidity > 80 ? 'Inspect crops for early signs of fungal disease' : 'Apply scheduled fertilizer dose',
-        temp > 35 ? 'Install shade nets to reduce heat stress on crops' : 'Prepare for next planting cycle if near harvest'
-    ];
-
-    return {
-        crop,
-        suggestions: suggestedCrops,
-        suitability,
-        irrigation,
-        tempAlert,
-        windAlert,
-        tips: `At ${Math.round(temp)}°C with ${humidity}% humidity, focus on ${humidity > 70 ? 'disease prevention' : 'moisture management'}.`,
-        fertilizer,
-        diseaseRisk,
-        roadmap,
-        naturalAdvice: `Based on live data: temperature is ${Math.round(temp)}°C with ${humidity}% humidity. ${soilMoisture < 0.2 ? 'Your soil needs water urgently.' : isRaining ? 'Rainfall is helping your crops today.' : 'Soil moisture levels look acceptable.'} ${diseaseRisk.startsWith('High') || diseaseRisk.startsWith('Moderate') ? 'Watch for disease signs in the coming days.' : 'Overall conditions are manageable — keep monitoring daily.'}`
-    };
-}
-
 app.listen(PORT, () => {
-    console.log(`✅ AgriAssist Server running on port ${PORT}`);
-    console.log(`   OpenAI: ${process.env.VITE_OPENAI_API_KEY && process.env.VITE_OPENAI_API_KEY !== 'your_openai_api_key_here' ? '🟢 Key found' : '🟡 No key — using smart fallback'}`);
+    console.log(`AgriAssist Server running on port ${PORT}`);
 });
