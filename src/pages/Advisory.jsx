@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Leaf, Beaker, Droplets, AlertCircle, Loader, Info, Cloud, TrendingDown, TrendingUp } from 'lucide-react';
+import { Leaf, Beaker, Droplets, AlertCircle, Loader, Info } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const Advisory = () => {
@@ -60,7 +60,6 @@ const Advisory = () => {
         setAdvisoryData(null);
 
         try {
-            // Fetch advisory data from API
             const apiData = await fetchAdvisory();
             if (apiData) {
                 setAdvisoryData(apiData);
@@ -68,10 +67,6 @@ const Advisory = () => {
 
             const soilTypeLabel = SOIL_TYPES.find(s => s.value === soilType)?.label;
             const irrigationLabel = IRRIGATION_TYPES.find(i => i.value === irrigationType)?.label;
-
-            // For soil/crop/fertilizer recommendations, still use a prompt-based approach
-            const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-            const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash-lite';
 
             if (GEMINI_API_KEY) {
                 const prompt = `You are an agricultural expert. Provide recommendations for growing ${cropType} with the following conditions:
@@ -138,7 +133,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: '4rem' }}>
-            {/* Hero Banner */}
             <div style={{
                 position: 'relative',
                 height: '380px',
@@ -164,7 +158,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                 </div>
             </div>
 
-            {/* Input Section */}
             <div style={{ maxWidth: '900px', margin: '-40px auto 4rem', position: 'relative', zIndex: 10, padding: '0 2rem' }}>
                 <div style={{
                     background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(20, 40, 50, 0.95) 100%)',
@@ -183,7 +176,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                         </p>
                     </div>
 
-                    {/* District Input */}
                     <div style={{ marginBottom: '2.5rem' }}>
                         <label style={{ color: '#fff', fontSize: '1rem', fontWeight: '600', marginBottom: '0.8rem', display: 'block' }}>
                             📍 Your District
@@ -213,7 +205,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                         </datalist>
                     </div>
 
-                    {/* Soil Type */}
                     <div style={{ marginBottom: '2.5rem' }}>
                         <label style={{ color: '#fff', fontSize: '1rem', fontWeight: '600', marginBottom: '0.8rem', display: 'block' }}>
                             🌍 Soil Type
@@ -235,7 +226,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                         </div>
                     </div>
 
-                    {/* Crop Type */}
                     <div style={{ marginBottom: '2.5rem' }}>
                         <label style={{ color: '#fff', fontSize: '1rem', fontWeight: '600', marginBottom: '0.8rem', display: 'block' }}>
                             🌾 Crop Name
@@ -252,7 +242,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                         </datalist>
                     </div>
 
-                    {/* Irrigation Type */}
                     <div style={{ marginBottom: '2.5rem' }}>
                         <label style={{ color: '#fff', fontSize: '1rem', fontWeight: '600', marginBottom: '0.8rem', display: 'block' }}>
                             💧 Irrigation Method
@@ -274,7 +263,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                         </div>
                     </div>
 
-                    {/* Submit Button */}
                     <button onClick={generateRecommendations} disabled={loading || !district.trim() || !soilType || !cropType.trim() || !irrigationType}
                         className="btn-main" style={{
                             width: '100%', padding: '1.1rem', borderRadius: '12px', display: 'flex', alignItems: 'center',
@@ -300,7 +288,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                 </div>
             </div>
 
-            {/* Results Section */}
             <div style={{ padding: '0 2rem', maxWidth: '1000px', margin: '0 auto' }}>
                 {!advisoryData && !recommendations && !loading && (
                     <div style={{ textAlign: 'center', padding: '4rem 0', color: 'rgba(255,255,255,0.5)' }}>
@@ -319,7 +306,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
 
                 {advisoryData && !loading && (
                     <div className="fade-in">
-                        {/* Weather Card */}
                         {advisoryData.weather && (
                             <div style={{
                                 background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)',
@@ -354,7 +340,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             </div>
                         )}
 
-                        {/* Market Card */}
                         {advisoryData.market && (
                             <div style={{
                                 background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%)',
@@ -362,7 +347,7 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                                 marginBottom: '2rem'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
-                                    {advisoryData.market.trend === 'up' ? <TrendingUp size={28} style={{ color: '#34d399' }} /> : <TrendingDown size={28} style={{ color: '#f87171' }} />}
+                                    <TrendingUp size={28} style={{ color: '#34d399' }} />
                                     <h3 style={{ margin: 0, fontSize: '1.3rem', color: '#fff' }}>Market Trends - {advisoryData.market.crop}</h3>
                                     {advisoryData.market.fallback && <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#fbbf24' }}>📡 Fallback Data</span>}
                                 </div>
@@ -383,7 +368,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             </div>
                         )}
 
-                        {/* Risk Assessment Card */}
                         {advisoryData.risk && (
                             <div style={{
                                 background: `linear-gradient(135deg, rgba(${getRiskColor(advisoryData.risk.level).includes('rgb') ? '248, 113, 113' : '251, 191, 36'}, 0.1) 0%, rgba(${getRiskColor(advisoryData.risk.level).includes('rgb') ? '248, 113, 113' : '251, 191, 36'}, 0.05) 100%)`,
@@ -423,7 +407,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             </div>
                         )}
 
-                        {/* Daily Advisory Messages */}
                         {advisoryData.advisory && advisoryData.advisory.length > 0 && (
                             <div style={{
                                 background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(20, 83, 45, 0.05) 100%)',
@@ -449,10 +432,8 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                     </div>
                 )}
 
-                {/* Soil/Crop Recommendations Section */}
                 {recommendations && !loading && (
                     <div className="fade-in">
-                        {/* Soil Info Card */}
                         <div style={{
                             background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(20, 83, 45, 0.05) 100%)',
                             padding: '2.5rem', borderRadius: '24px', border: '1px solid rgba(34, 197, 94, 0.2)',
@@ -467,7 +448,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             <Leaf size={80} style={{ color: 'var(--accent-green)', opacity: 0.2 }} />
                         </div>
 
-                        {/* Suitable Crops */}
                         {recommendations.suitableCrops && (
                             <div style={{
                                 background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(20, 83, 45, 0.02) 100%)',
@@ -494,7 +474,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             </div>
                         )}
 
-                        {/* Fertilizers */}
                         {recommendations.fertilizers && (
                             <div style={{
                                 background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(217, 119, 6, 0.02) 100%)',
@@ -530,7 +509,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             </div>
                         )}
 
-                        {/* Tips Section */}
                         <div style={{
                             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem'
                         }}>
@@ -583,8 +561,6 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             )}
                         </div>
 
-                        {/* Reset Button */}
-                        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
                             <button onClick={() => {
                                 setDistrict(''); setSoilType(''); setCropType(''); setIrrigationType('');
                                 setRecommendations(null); setAdvisoryData(null);
