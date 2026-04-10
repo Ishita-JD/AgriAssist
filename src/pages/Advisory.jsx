@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Leaf, Beaker, Droplets, AlertCircle, Loader, Info } from 'lucide-react';
+import { Leaf, Beaker, Droplets, AlertCircle, Loader, Info, Cloud, TrendingUp } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 const Advisory = () => {
@@ -67,6 +67,9 @@ const Advisory = () => {
 
             const soilTypeLabel = SOIL_TYPES.find(s => s.value === soilType)?.label;
             const irrigationLabel = IRRIGATION_TYPES.find(i => i.value === irrigationType)?.label;
+
+            const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+            const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash-lite';
 
             if (GEMINI_API_KEY) {
                 const prompt = `You are an agricultural expert. Provide recommendations for growing ${cropType} with the following conditions:
@@ -561,6 +564,7 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             )}
                         </div>
 
+                        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
                             <button onClick={() => {
                                 setDistrict(''); setSoilType(''); setCropType(''); setIrrigationType('');
                                 setRecommendations(null); setAdvisoryData(null);
