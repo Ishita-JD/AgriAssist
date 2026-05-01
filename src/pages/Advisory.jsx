@@ -2,6 +2,63 @@ import React, { useState } from 'react';
 import { Leaf, Beaker, Droplets, AlertCircle, Loader, Info, Cloud, TrendingUp } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
+const ensureStringArray = (value) => {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean);
+};
+
+const ensureFertilizers = (value) => {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .map((item) => ({
+            name: typeof item?.name === 'string' ? item.name.trim() : '',
+            npkRatio: typeof item?.npkRatio === 'string' ? item.npkRatio.trim() : '',
+            quantity: typeof item?.quantity === 'string' ? item.quantity.trim() : '',
+        }))
+        .filter((item) => item.name && item.npkRatio && item.quantity);
+};
+
+const ensureText = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const normalizeRecommendations = (parsedData, { cropType, soilTypeLabel }) => {
+    const suitableCrops = ensureStringArray(parsedData?.suitableCrops);
+    const fertilizers = ensureFertilizers(parsedData?.fertilizers);
+    const soilCharacteristics = ensureText(parsedData?.soilCharacteristics);
+    const cropTips = ensureText(parsedData?.cropTips);
+    const irrigationAdvice = ensureText(parsedData?.irrigationAdvice);
+    const seasonalAdvice = ensureText(parsedData?.seasonalAdvice);
+
+    if (
+        suitableCrops.length === 0 &&
+        fertilizers.length === 0 &&
+        !soilCharacteristics &&
+        !cropTips &&
+        !irrigationAdvice &&
+        !seasonalAdvice
+    ) {
+        return null;
+    }
+
+    return {
+        soilType: soilTypeLabel,
+        cropName: cropType,
+        suitableCrops,
+        fertilizers,
+        soilCharacteristics,
+        cropTips,
+        irrigationAdvice,
+        seasonalAdvice
+    };
+};
+
 const Advisory = () => {
     const [soilType, setSoilType] = useState('');
     const [cropType, setCropType] = useState('');
@@ -11,6 +68,7 @@ const Advisory = () => {
     const [recommendations, setRecommendations] = useState(null);
     const [advisoryData, setAdvisoryData] = useState(null);
     const [error, setError] = useState(null);
+    const [recommendationNotice, setRecommendationNotice] = useState(null);
     const { t } = useLanguage();
 
     const SOIL_TYPES = [
@@ -58,6 +116,7 @@ const Advisory = () => {
         setError(null);
         setRecommendations(null);
         setAdvisoryData(null);
+        setRecommendationNotice(null);
 
         try {
             const apiData = await fetchAdvisory();
@@ -71,14 +130,39 @@ const Advisory = () => {
             const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
             const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash-lite';
 
+            if (!GEMINI_API_KEY) {
+                setRecommendationNotice('AI crop and fertilizer recommendations are unavailable because VITE_GEMINI_API_KEY is missing. Live weather, market, risk, and daily advisory data are still shown.');
+                return;
+            }
+
             if (GEMINI_API_KEY) {
+                const weatherContext = apiData?.weather
+                    ? `- Temperature: ${apiData.weather.temperature ?? 'unknown'} C
+- Rain probability: ${apiData.weather.rain ?? 'unknown'}%
+- Wind speed: ${apiData.weather.wind ?? 'unknown'} km/h`
+                    : '- Weather data unavailable';
+
+                const marketContext = apiData?.market
+                    ? `- Market trend: ${apiData.market.trend || 'unknown'}
+- Average mandi price: ${apiData.market.averagePrice ?? 'unknown'}`
+                    : '- Market data unavailable';
+
+                const riskContext = apiData?.risk
+                    ? `- Risk level: ${apiData.risk.level}
+- Risk explanation: ${apiData.risk.explanation}`
+                    : '- Risk data unavailable';
+
                 const prompt = `You are an agricultural expert. Provide recommendations for growing ${cropType} with the following conditions:
+- District: ${district}
 - Soil Type: ${soilTypeLabel}
 - Irrigation Method: ${irrigationLabel}
+${weatherContext}
+${marketContext}
+${riskContext}
 
-Provide detailed recommendations in JSON format ONLY with these exact fields:
+Return detailed recommendations in JSON format ONLY with these exact fields:
 {
-    "suitableCrops": ["${cropType}", "alternative crop 2", "alternative crop 3", "alternative crop 4", "alternative crop 5"],
+    "suitableCrops": ["crop 1", "crop 2", "crop 3"],
     "fertilizers": [
         { "name": "fertilizer name", "npkRatio": "N-P-K ratio", "quantity": "kg/hectare" },
         { "name": "fertilizer name", "npkRatio": "N-P-K ratio", "quantity": "kg/hectare" },
@@ -88,7 +172,13 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
     "cropTips": "2-3 line tips for growing ${cropType} in ${soilTypeLabel}",
     "irrigationAdvice": "Specific irrigation practices and water requirements for ${cropType} using ${irrigationLabel}",
     "seasonalAdvice": "Seasonal recommendations and best practices for ${cropType}"
-}`;
+}
+
+Rules:
+- Recommend 3 to 5 genuinely suitable crops for these conditions.
+- Include ${cropType} in suitableCrops only if it is actually suitable.
+- Keep fertilizer suggestions practical and crop-specific.
+- Do not add markdown or explanation outside the JSON object.`;
 
                 const payload = {
                     contents: [{
@@ -111,13 +201,21 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                 if (!response.ok) throw new Error(data?.error?.message || 'API Error');
 
                 const jsonMatch = data.candidates[0]?.content?.parts?.[0]?.text?.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    const parsedData = JSON.parse(jsonMatch[0]);
-                    setRecommendations({
-                        soilType: soilTypeLabel,
-                        cropName: cropType,
-                        ...parsedData
-                    });
+                if (!jsonMatch) {
+                    setRecommendationNotice('AI recommendations could not be parsed right now. Live advisory data is still available below.');
+                    return;
+                }
+
+                const parsedData = JSON.parse(jsonMatch[0]);
+                const normalizedRecommendations = normalizeRecommendations(parsedData, {
+                    cropType,
+                    soilTypeLabel
+                });
+
+                if (normalizedRecommendations) {
+                    setRecommendations(normalizedRecommendations);
+                } else {
+                    setRecommendationNotice('AI recommendations came back incomplete, so crop and fertilizer suggestions were hidden.');
                 }
             }
         } catch (err) {
@@ -288,6 +386,17 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             {error}
                         </div>
                     )}
+
+                    {recommendationNotice && !error && (
+                        <div style={{
+                            marginTop: '1.5rem', padding: '1rem', background: 'rgba(251, 191, 36, 0.1)',
+                            border: '1px solid rgba(251, 191, 36, 0.25)', borderRadius: '12px', color: '#fcd34d',
+                            display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.95rem'
+                        }}>
+                            <Info size={20} />
+                            {recommendationNotice}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -451,7 +560,7 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             <Leaf size={80} style={{ color: 'var(--accent-green)', opacity: 0.2 }} />
                         </div>
 
-                        {recommendations.suitableCrops && (
+                        {recommendations.suitableCrops.length > 0 && (
                             <div style={{
                                 background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(20, 83, 45, 0.02) 100%)',
                                 padding: '2rem', borderRadius: '16px', border: '1px solid rgba(34, 197, 94, 0.2)', marginBottom: '2rem',
@@ -477,7 +586,7 @@ Provide detailed recommendations in JSON format ONLY with these exact fields:
                             </div>
                         )}
 
-                        {recommendations.fertilizers && (
+                        {recommendations.fertilizers.length > 0 && (
                             <div style={{
                                 background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(217, 119, 6, 0.02) 100%)',
                                 padding: '2rem', borderRadius: '16px', border: '1px solid rgba(251, 191, 36, 0.2)', marginBottom: '2rem',

@@ -1,37 +1,117 @@
-import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Languages } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Languages } from 'lucide-react';
+
+const LANGUAGE_OPTIONS = [
+    { code: 'en', label: 'English' },
+    { code: 'hi', label: 'Hindi' },
+    { code: 'pa', label: 'Punjabi' },
+    { code: 'bn', label: 'Bengali' },
+    { code: 'te', label: 'Telugu' },
+    { code: 'mr', label: 'Marathi' },
+    { code: 'ta', label: 'Tamil' },
+    { code: 'gu', label: 'Gujarati' },
+    { code: 'kn', label: 'Kannada' },
+    { code: 'ml', label: 'Malayalam' }
+];
+
+const GOOGLE_TRANSLATE_COOKIE = 'googtrans';
+const LANGUAGE_STORAGE_KEY = 'agriassist-language';
+
+const setTranslateCookie = (langCode) => {
+    const value = `/en/${langCode}`;
+    document.cookie = `${GOOGLE_TRANSLATE_COOKIE}=${value};path=/;max-age=31536000`;
+    document.cookie = `${GOOGLE_TRANSLATE_COOKIE}=${value};path=/;domain=${window.location.hostname};max-age=31536000`;
+};
+
+const applyGoogleTranslate = (langCode) => {
+    const select = document.querySelector('.goog-te-combo');
+
+    if (!select) {
+        return false;
+    }
+
+    if (select.value !== langCode) {
+        select.value = langCode;
+        select.dispatchEvent(new Event('change'));
+    }
+
+    return true;
+};
 
 const Navbar = ({ scrolled, onLoginClick }) => {
     const { user, logout } = useAuth();
-    const { t, toggleLanguage } = useLanguage();
+    const { t } = useLanguage();
+    const location = useLocation();
     const navigate = useNavigate();
+    const [selectedLanguage, setSelectedLanguage] = useState(() => localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'en');
 
     useEffect(() => {
-        // Prevent multiple scripts or multiple initializations
-        if (!document.getElementById('google-translate-script')) {
-            const addScript = document.createElement('script');
-            addScript.id = 'google-translate-script';
-            addScript.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-            addScript.async = true;
-            document.body.appendChild(addScript);
-        }
-
-        window.googleTranslateElementInit = () => {
-            // Check if widget already exists to avoid duplication
+        const initializeTranslateWidget = () => {
             const container = document.getElementById('google_translate_element');
-            if (container && !container.hasChildNodes() && window.google && window.google.translate) {
+
+            if (!container || !window.google?.translate) {
+                return;
+            }
+
+            if (!container.childNodes.length) {
                 new window.google.translate.TranslateElement({
                     pageLanguage: 'en',
-                    includedLanguages: 'hi,en,pa,bn,te,mr,ta,gu,kn,ml',
-                    layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-                    autoDisplay: false
+                    includedLanguages: LANGUAGE_OPTIONS.map((item) => item.code).join(','),
+                    autoDisplay: false,
+                    layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE
                 }, 'google_translate_element');
             }
+
+            window.setTimeout(() => {
+                applyGoogleTranslate(localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'en');
+            }, 400);
         };
+
+        window.googleTranslateElementInit = initializeTranslateWidget;
+
+        if (window.google?.translate) {
+            initializeTranslateWidget();
+            return;
+        }
+
+        if (!document.getElementById('google-translate-script')) {
+            const script = document.createElement('script');
+            script.id = 'google-translate-script';
+            script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+            script.async = true;
+            document.body.appendChild(script);
+        }
     }, []);
+
+    useEffect(() => {
+        setTranslateCookie(selectedLanguage);
+    }, [selectedLanguage]);
+
+    useEffect(() => {
+        if (selectedLanguage === 'en') {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            applyGoogleTranslate(selectedLanguage);
+        }, 500);
+
+        return () => window.clearTimeout(timer);
+    }, [location.pathname, selectedLanguage]);
+
+    const handleLanguageChange = (event) => {
+        const langCode = event.target.value;
+        setSelectedLanguage(langCode);
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, langCode);
+        setTranslateCookie(langCode);
+
+        if (!applyGoogleTranslate(langCode)) {
+            window.location.reload();
+        }
+    };
 
     const handleLogout = async () => {
         try {
@@ -60,8 +140,24 @@ const Navbar = ({ scrolled, onLoginClick }) => {
             )}
 
             <div className="nav-auth">
-                {/* Google Translate Integration */}
-                <div id="google_translate_element" style={{ marginRight: '1rem' }} />
+                <div className="translate-control">
+                    <label htmlFor="navbar-language" className="translate-label" aria-label="Translate website">
+                        <Languages size={16} />
+                    </label>
+                    <select
+                        id="navbar-language"
+                        className="translate-select"
+                        value={selectedLanguage}
+                        onChange={handleLanguageChange}
+                    >
+                        {LANGUAGE_OPTIONS.map((language) => (
+                            <option key={language.code} value={language.code}>
+                                {language.label}
+                            </option>
+                        ))}
+                    </select>
+                    <div id="google_translate_element" className="translate-widget-hidden" />
+                </div>
 
                 {user ? (
                     <div className="user-profile">

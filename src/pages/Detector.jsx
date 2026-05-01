@@ -20,6 +20,20 @@ const getTreatmentColor = (type) => {
     }
 };
 
+const getPrimaryPlantSuggestion = (data) => {
+    const suggestion = data?.suggestions?.[0];
+
+    if (!suggestion) {
+        return null;
+    }
+
+    return {
+        name: suggestion.plant_name || suggestion.name || 'Unknown plant',
+        probability: suggestion.probability,
+        commonNames: suggestion.plant_details?.common_names || [],
+    };
+};
+
 const Detector = () => {
     const [dragOver, setDragOver] = useState(false);
     const [preview, setPreview] = useState(null);
@@ -62,26 +76,49 @@ const Detector = () => {
                 throw new Error("API Key is missing. Please add VITE_PLANT_ID_API_KEY to your .env file.");
             }
 
-            const response = await fetch('https://api.plant.id/v2/health_assessment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Api-Key': apiKey
-                },
-                body: JSON.stringify({
-                    images: [base64Image],
-                    modifiers: ["crops_fast", "similar_images"],
-                    disease_details: ["cause", "common_names", "classification", "description", "treatment", "url"]
-                })
-            });
+            const headers = {
+                'Content-Type': 'application/json',
+                'Api-Key': apiKey
+            };
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
+            const [healthResponse, identifyResponse] = await Promise.all([
+                fetch('https://api.plant.id/v2/health_assessment', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        images: [base64Image],
+                        modifiers: ["crops_fast", "similar_images"],
+                        disease_details: ["cause", "common_names", "classification", "description", "treatment", "url"]
+                    })
+                }),
+                fetch('https://api.plant.id/v2/identify', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        images: [base64Image],
+                        modifiers: ["crops_fast", "similar_images"],
+                        plant_details: ["common_names", "url"]
+                    })
+                })
+            ]);
+
+            if (!healthResponse.ok) {
+                const errData = await healthResponse.json().catch(() => ({}));
                 throw new Error(errData.message || 'Failed to analyze image with Plant.id API');
             }
 
-            const data = await response.json();
-            setResult(data);
+            if (!identifyResponse.ok) {
+                const errData = await identifyResponse.json().catch(() => ({}));
+                throw new Error(errData.message || 'Failed to identify plant with Plant.id API');
+            }
+
+            const healthData = await healthResponse.json();
+            const identifyData = await identifyResponse.json();
+
+            setResult({
+                ...healthData,
+                plantSuggestion: getPrimaryPlantSuggestion(identifyData)
+            });
         } catch (err) {
             setError(err.message);
         } finally {
@@ -192,6 +229,28 @@ const Detector = () => {
                 {result && (
                     <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--glass-border)', marginBottom: '3rem' }}>
                         <h3 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem' }}>{t('detResultsTitle')}</h3>
+
+                        {result.plantSuggestion && (
+                            <div style={{ marginBottom: '1.5rem', padding: '1.25rem', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.4rem' }}>
+                                    <Leaf size={20} style={{ color: 'var(--accent-green)' }} />
+                                    <span style={{ color: '#fff', fontWeight: '700' }}>Detected plant</span>
+                                </div>
+                                <div style={{ fontSize: '1.15rem', color: '#d1fae5', fontWeight: '600' }}>
+                                    {result.plantSuggestion.name}
+                                    {typeof result.plantSuggestion.probability === 'number' && (
+                                        <span style={{ marginLeft: '0.6rem', fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', fontWeight: '500' }}>
+                                            ({(result.plantSuggestion.probability * 100).toFixed(1)}% match)
+                                        </span>
+                                    )}
+                                </div>
+                                {result.plantSuggestion.commonNames.length > 0 && (
+                                    <div style={{ marginTop: '0.5rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.95rem' }}>
+                                        Common names: {result.plantSuggestion.commonNames.slice(0, 3).join(', ')}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {result.health_assessment?.is_healthy?.binary ? (
                             <div style={{ color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '12px', padding: '1rem', background: 'rgba(74, 222, 128, 0.1)', borderRadius: '8px' }}>

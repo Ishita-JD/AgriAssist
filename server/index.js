@@ -102,13 +102,25 @@ async function fetchMandiData(crop) {
             prices.reduce((sum, price) => sum + price, 0) / prices.length
         );
 
-        let trend = 'stable';
-        if (prices.length > 1) {
-            const increasing = prices.every((price, index) => index === 0 || price >= prices[index - 1]) &&
-                prices.some((price, index) => index > 0 && price > prices[index - 1]);
+        const getTimestamp = (record) => {
+            const rawDate = record.arrival_date || record.date || record.timestamp || record.mandi_date || '';
+            const ts = new Date(rawDate).getTime();
+            return Number.isFinite(ts) ? ts : 0;
+        };
 
-            const decreasing = prices.every((price, index) => index === 0 || price <= prices[index - 1]) &&
-                prices.some((price, index) => index > 0 && price < prices[index - 1]);
+        const sortedRecords = (mandiData.records || [])
+            .filter((record) => Number.isFinite(Number(record.modal_price)))
+            .sort((a, b) => getTimestamp(a) - getTimestamp(b));
+
+        const sortedPrices = sortedRecords.map((record) => Number(record.modal_price));
+
+        let trend = 'stable';
+        if (sortedPrices.length > 1) {
+            const increasing = sortedPrices.every((price, index) => index === 0 || price >= sortedPrices[index - 1]) &&
+                sortedPrices.some((price, index) => index > 0 && price > sortedPrices[index - 1]);
+
+            const decreasing = sortedPrices.every((price, index) => index === 0 || price <= sortedPrices[index - 1]) &&
+                sortedPrices.some((price, index) => index > 0 && price < sortedPrices[index - 1]);
 
             if (increasing) {
                 trend = 'up';
